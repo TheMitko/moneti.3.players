@@ -190,7 +190,7 @@ function highlightPointsForCapture(pointId)
 
   point.connections.forEach(connectionId => {
     const connectedPoint = pointsData.find(p => p.id === connectionId);
-    if (connectedPoint) {
+    if (connectedPoint && connectionId !== pointId) {
       if (pawnsOnPoints[connectionId].pawns !== 0 && pawnsOnPoints[connectionId].owner !== currentPlayer) {
         pawnsInfoBeforeHighlight[connectionId] = { pawns: pawnsOnPoints[connectionId].pawns, owner: pawnsOnPoints[connectionId].owner };
         pawnsOnPoints[connectionId].owner = "highlight";
