@@ -399,7 +399,7 @@ const pointsData = [
             "id": "point45",
             "x": 732.3999938964844,
             "y": 289.52500000596046,
-            "connections": ["point46"],
+            "connections": ["point46", "point59"],
             "country": "Prussia",
             "capital": false
         },
@@ -442,9 +442,9 @@ const pointsData = [
         
         {
             "id": "point50",
-            "x": 164,
-            "y": 158.52000045776367,
-            "connections": [],
+            "x": 1109,
+            "y": 648,
+            "connections": ["point134", "point114"],
             "country": "Ottoman",
             "capital": false
         },
@@ -525,7 +525,7 @@ const pointsData = [
             "id": "point59",
             "x": 707.3999938964844,
             "y": 326.52500915527344,
-            "connections": ["point71","point60"],
+            "connections": ["point71","point60","point45"],
             "country": "Austria",
             "capital": false
         },
