@@ -237,7 +237,7 @@ const pointsData = [
             "id": "point27",
             "x": 702.3999938964844,
             "y": 209.52500000596046,
-            "connections": [],
+            "connections": ["point29"],
             "country": "Prussia",
             "capital": false
         },
