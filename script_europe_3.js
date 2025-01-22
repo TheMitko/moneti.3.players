@@ -12,6 +12,7 @@ let isMovingPhase = false; // Следене на фазата на премес
 let currentPlayer = 1; // Следене на текущия играч
 let captureOptions = []; // Опции за кацане при улавяне
 let dinamicCaptureOptions = []; // Опции за кацане при улавяне, когато SkipPawns е true
+let oldPawnIds = [];
 let X = false; // Променлива, указваща дали е необходимо прескачане
 let Y = false; // Променлива, указваща дали е направен изборът за кацане
 let isACapitalBeingAttacked = false;
@@ -32,6 +33,8 @@ let pawnsChoiceStarted = false;
 let ValidChoice = null;
 let skippingEnded=false;
 let endPlacing=false;
+let startingPointId = null;
+let yellowPoints = [];
 
 const players = {
   1: { color: "blue", remainingPawnsToMove: gameData.pawnsCount, remainingPawns: gameData.pawnsCount, countries: playersCountries[1], capitalsNum: 3 },
@@ -48,13 +51,15 @@ function highlightConnections(pointId) {
 
   point.connections.forEach(connectionId => {
     const connectedPoint = pointsData.find(p => p.id === connectionId);
-    if (connectedPoint && connectionId !== pointId ) {
+    if (connectedPoint && connectionId !== pointId && !oldPawnIds.includes(connectionId) /* 555 */) {
       dinamicCaptureOptions.push(connectionId);
       const circle = document.getElementById(connectionId);
       if (circle) {
         circle.setAttribute("fill", "yellow");
+        yellowPoints.push(connectionId);
         circle.setAttribute("r", connectedPoint.capital ? 22 : 10);
       }
+      
     }
   });
 }
@@ -199,9 +204,11 @@ function highlightPointsForCapture(pointId)
     return;
   }
 
+  oldPawnIds.push(pointId);
+
   point.connections.forEach(connectionId => {
     const connectedPoint = pointsData.find(p => p.id === connectionId);
-    if (connectedPoint && connectionId !== pointId) {
+    if (connectedPoint && connectionId !== pointId && !oldPawnIds.includes(connectionId) /* 555 */) {
       if (pawnsOnPoints[connectionId].pawns !== 0 && pawnsOnPoints[connectionId].owner !== currentPlayer) {
         pawnsInfoBeforeHighlight[connectionId] = { pawns: pawnsOnPoints[connectionId].pawns, owner: pawnsOnPoints[connectionId].owner };
         pawnsOnPoints[connectionId].owner = "highlight";
@@ -225,6 +232,7 @@ function unhighlightPointsForCapture()
     skippingEnded=false;
    }
   }
+  yellowPoints = [];
   
 }
 
@@ -280,8 +288,8 @@ function selectPoint(pointId) {
 
     if (dinamicCaptureOptions.length > 0) {
 
-       unhighlightPointsForCapture();
-
+        unhighlightPointsForCapture();
+        oldPawnIds.push(ValidChoice);
         highlightConnections(pointId); // Highlight connections for SkipPawns logic
 
         playerPawnsCount[pawnsOnPoints[pointId].owner] -= pawnsOnPoints[pointId].pawns;
@@ -310,13 +318,15 @@ function selectPoint(pointId) {
   if (captureIsHappening) {
     const validChoice = dinamicCaptureOptions.find(option => option === pointId);
     ValidChoice=validChoice;
-    if (!validChoice) {
+    if (!validChoice || yellowPoints.includes(validChoice)===false) {
       return;
     }
     if(pawnsOnPoints[validChoice].owner !== currentPlayer && pawnsOnPoints[validChoice].pawns !== 0) {
       alert("Не можете да кацате върху противникови пулове");
       return;
     }
+
+    oldPawnIds=[];
 
     dinamicCaptureOptions.forEach(option => {
       const circle = document.getElementById(option);
@@ -332,6 +342,7 @@ function selectPoint(pointId) {
     });
 
     pawnsOnPoints[validChoice] = { pawns: 1, owner: currentPlayer };
+    oldPawnIds.push(validChoice);
     updatePointDisplay(validChoice);
     
 
@@ -348,7 +359,7 @@ function selectPoint(pointId) {
     point.connections.forEach(connectionId => {
       const connectedPoint = pointsData.find(p => p.id === connectionId);
       if (connectedPoint) {
-        if (pawnsOnPoints[connectionId].pawns !== 0 && pawnsOnPoints[connectionId].owner !== currentPlayer && connectionId!==pointId && connectionId !== DestinationPoint) {
+        if (pawnsOnPoints[connectionId].pawns !== 0 && pawnsOnPoints[connectionId].owner !== currentPlayer && connectionId!==pointId && connectionId !== DestinationPoint && !oldPawnIds.includes(connectionId) /* 555 */) {
           doubleSkipPossibility = true;
           
           console.log(connectionId + "e опция за прескачане");
@@ -550,7 +561,8 @@ function movePawns(startPointId, destinationPointId) {
 
   const numPawns = 1; // Може да се премести само един пул наведнъж
 
-  // Актуализиране на броя пулове за преместването
+  // Here's where pawns are removed from the starting point
+  startingPointId = startPointId;
   pawnsOnPoints[startPointId].pawns -= numPawns;
   if (pawnsOnPoints[startPointId].pawns === 0) {
     pawnsOnPoints[startPointId].owner = null;
