@@ -31,6 +31,9 @@ let pawnsInfoBeforeHighlight = {};
 let pawnsChoiceStarted = false;
 let ValidChoice = null;
 let skippingEnded=false;
+let startingPointId = null;
+let yellowPoints = [];
+let oldPawnIds = [];
 
 const players = {
   1: { color: "blue", remainingPawnsToMove: gameData.pawnsCount, remainingPawns: gameData.pawnsCount, countries: playersCountries[1], capitalsNum: 4 },
@@ -46,11 +49,12 @@ function highlightConnections(pointId) {
 
   point.connections.forEach(connectionId => {
     const connectedPoint = pointsData.find(p => p.id === connectionId);
-    if (connectedPoint && connectionId !== pointId ) {
+    if (connectedPoint && connectionId !== pointId && !oldPawnIds.includes(connectionId)) {
       dinamicCaptureOptions.push(connectionId);
       const circle = document.getElementById(connectionId);
       if (circle) {
         circle.setAttribute("fill", "yellow");
+        yellowPoints.push(connectionId);
         circle.setAttribute("r", connectedPoint.capital ? 22 : 10);
       }
     }
@@ -188,6 +192,8 @@ function highlightPointsForCapture(pointId)
     return;
   }
 
+  oldPawnIds.push(pointId);
+
   point.connections.forEach(connectionId => {
     const connectedPoint = pointsData.find(p => p.id === connectionId);
     if (connectedPoint && connectionId !== pointId) {
@@ -214,7 +220,7 @@ function unhighlightPointsForCapture()
     skippingEnded=false;
    }
   }
-  
+  yellowPoints = [];
 }
 
 // Обработчик на събития за избиране на точка
@@ -270,9 +276,7 @@ function selectPoint(pointId) {
     if (dinamicCaptureOptions.length > 0) {
 
        unhighlightPointsForCapture();
-
-       
-
+       oldPawnIds.push(ValidChoice);
         highlightConnections(pointId); // Highlight connections for SkipPawns logic
 
         playerPawnsCount[pawnsOnPoints[pointId].owner] -= pawnsOnPoints[pointId].pawns;
@@ -301,13 +305,15 @@ function selectPoint(pointId) {
   if (captureIsHappening) {
     const validChoice = dinamicCaptureOptions.find(option => option === pointId);
     ValidChoice=validChoice;
-    if (!validChoice) {
+    if (!validChoice || yellowPoints.includes(validChoice)===false) {
       return;
     }
     if(pawnsOnPoints[validChoice].owner !== currentPlayer && pawnsOnPoints[validChoice].pawns !== 0) {
       alert("Не можете да кацате върху противникови пулове");
       return;
     }
+
+    oldPawnIds=[];
 
     dinamicCaptureOptions.forEach(option => {
       const circle = document.getElementById(option);
@@ -323,6 +329,7 @@ function selectPoint(pointId) {
     });
 
     pawnsOnPoints[validChoice] = { pawns: 1, owner: currentPlayer };
+    oldPawnIds.push(validChoice);
     updatePointDisplay(validChoice);
     
 
@@ -339,7 +346,7 @@ function selectPoint(pointId) {
     point.connections.forEach(connectionId => {
       const connectedPoint = pointsData.find(p => p.id === connectionId);
       if (connectedPoint) {
-        if (pawnsOnPoints[connectionId].pawns !== 0 && pawnsOnPoints[connectionId].owner !== currentPlayer && connectionId!==pointId && connectionId !== DestinationPoint) {
+        if (pawnsOnPoints[connectionId].pawns !== 0 && pawnsOnPoints[connectionId].owner !== currentPlayer && connectionId!==pointId && connectionId !== DestinationPoint && !oldPawnIds.includes(connectionId)) {
           doubleSkipPossibility = true;
           
           console.log(connectionId + "e опция за прескачане");
@@ -476,18 +483,20 @@ function placePawns(pointId) {
 
   const playerName = playerNames[player === players[1] ? 0 : 1] || `Играч ${player === players[1] ? 1 : 2}`;
 
-  if (player.remainingPawns <= 0) {
-    alert(`${playerName} няма оставащи пулове.`);
-    return;
-  }
 
   const maxPawnsToPlace = player.remainingPawns;
-  const numPawns = parseInt(prompt(`Колко пулове искате да поставите? (Max: ${maxPawnsToPlace})`), 10);
+  const numPawns = parseInt(prompt(`Колко пулове искате да поставите? (Max: ${maxPawnsToPlace})
+За да препоставите пул, въведете отрицателно число`), 10);
 
-  if (isNaN(numPawns) || numPawns <= 0 || numPawns > maxPawnsToPlace) {
-    alert("Невалиден брой пулове. Опитайте отново.");
-    return;
-  }
+if (player.remainingPawns <=  0 && numPawns > 0) {
+  alert(`${playerName} няма оставащи пулове.`);
+  return;
+}
+
+if (isNaN(numPawns)  || numPawns > maxPawnsToPlace || numPawns < -pawnsOnPoints[pointId].pawns) {
+  alert("Невалиден брой пулове. Опитайте отново.");
+  return;
+}
 
   // Инициализиране на точката, ако за първи път се поставят пулове там
   if (!pawnsOnPoints[pointId]) {
@@ -500,12 +509,6 @@ function placePawns(pointId) {
   pawnsOnPoints[pointId].owner = player === players[1] ? 1 : 2;
 
   updatePointDisplay(pointId);
-
-  // Проверка дали и двамата играчи са изчерпали пуловете си
-  if (players[1].remainingPawns === 0 && players[2].remainingPawns === 0) {
-    alert("Разполагането на пулове приключи! Вече можете да ги местите!");
-    isMovingPhase = true;
-  }
 }
 // Функция за преместване на пулове между точки
 function movePawns(startPointId, destinationPointId) {
@@ -1039,4 +1042,22 @@ function handleSkipCaptureOption(pointId) {
     }
   }
 }
+
+document.getElementById('endPlacingButton').addEventListener('click', function() {
+  if (players[1].remainingPawns === 0 && players[2].remainingPawns === 0) {
+    alert("Разполагането на пулове приключи! Вече можете да ги местите!");
+    isMovingPhase = true;
+    this.style.display = 'none'; // Hide the button
+    this.disabled = true; // Disable the button
+  }
+  else if(players[1].remainingPawns === 0 && players[2].remainingPawns !== 0) {
+    alert(`${playerNames[1] || 'Играч 2'}, разположете оставащите пулове!`);
+  }
+  else if(players[1].remainingPawns !== 0 && players[2].remainingPawns === 0) {
+    alert(`${playerNames[0] || 'Играч 1'}, разположете оставащите пулове!`);
+  }
+  else {
+    alert(`${playerNames[0] || 'Играч 1'} и ${playerNames[1] || 'Играч 2'}, разположете оставащите пулове!`);
+  }
+});
 
