@@ -31,6 +31,7 @@ let pawnsInfoBeforeHighlight = {};
 let pawnsChoiceStarted = false;
 let ValidChoice = null;
 let skippingEnded=false;
+let endPlacing=false;
 
 const players = {
   1: { color: "blue", remainingPawnsToMove: gameData.pawnsCount, remainingPawns: gameData.pawnsCount, countries: playersCountries[1], capitalsNum: 3 },
@@ -493,15 +494,16 @@ function placePawns(pointId) {
 
   const playerName = playerNames[player === players[1] ? 0 : (player === players[2] ? 1 : 2)] || `Играч ${player === players[1] ? 1 : (player === players[2] ? 2 : 3)}`;
 
-  if (player.remainingPawns <= 0) {
+  const maxPawnsToPlace = player.remainingPawns;
+  const numPawns = parseInt(prompt(`Колко пулове искате да поставите? (Max: ${maxPawnsToPlace})
+За да препоставите пул, въведете отрицателно число`), 10);
+
+  if (player.remainingPawns <=  0 && numPawns > 0) {
     alert(`${playerName} няма оставащи пулове.`);
     return;
   }
 
-  const maxPawnsToPlace = player.remainingPawns;
-  const numPawns = parseInt(prompt(`Колко пулове искате да поставите? (Max: ${maxPawnsToPlace})`), 10);
-
-  if (isNaN(numPawns) || numPawns <= 0 || numPawns > maxPawnsToPlace) {
+  if (isNaN(numPawns)  || numPawns > maxPawnsToPlace || numPawns < -pawnsOnPoints[pointId].pawns) {
     alert("Невалиден брой пулове. Опитайте отново.");
     return;
   }
@@ -518,11 +520,7 @@ function placePawns(pointId) {
 
   updatePointDisplay(pointId);
 
-  // Проверка дали и двамата играчи са изчерпали пуловете си
-  if (players[1].remainingPawns === 0 && players[2].remainingPawns === 0 && players[3].remainingPawns === 0) {
-    alert("Разполагането на пулове приключи! Вече можете да ги местите!");
-    isMovingPhase = true;
-  }
+  
 }
 // Функция за преместване на пулове между точки
 function movePawns(startPointId, destinationPointId) {
@@ -1104,4 +1102,35 @@ function handleSkipCaptureOption(pointId) {
     }
   }
 }
+
+// Add event listener for the end placing button
+document.getElementById('endPlacingButton').addEventListener('click', function() {
+  if (players[1].remainingPawns === 0 && players[2].remainingPawns === 0 && players[3].remainingPawns === 0) {
+    alert("Разполагането на пулове приключи! Вече можете да ги местите!");
+    isMovingPhase = true;
+    this.style.display = 'none'; // Hide the button
+    this.disabled = true; // Disable the button
+  }
+  else if(players[1].remainingPawns === 0 && players[2].remainingPawns === 0 && players[3].remainingPawns !== 0) {
+    alert(`${playerNames[2] || 'Играч 3'}, разположете оставащите пулове!`);
+  }
+  else if(players[1].remainingPawns === 0 && players[2].remainingPawns !== 0 && players[3].remainingPawns === 0) {
+    alert(`${playerNames[1] || 'Играч 2'}, разположете оставащите пулове!`);
+  }
+  else if(players[1].remainingPawns !== 0 && players[2].remainingPawns === 0 && players[3].remainingPawns === 0) {
+    alert(`${playerNames[0] || 'Играч 1'}, разположете оставащите пулове!`);
+  }
+  else if(players[1].remainingPawns === 0 && players[2].remainingPawns !== 0 && players[3].remainingPawns !== 0) {
+    alert(`${playerNames[1] || 'Играч 2'} и ${playerNames[2] || 'Играч 3'}, разположете оставащите пулове!`);
+  }
+  else if(players[1].remainingPawns !== 0 && players[2].remainingPawns === 0 && players[3].remainingPawns !== 0) {
+    alert(`${playerNames[0] || 'Играч 1'} и ${playerNames[2] || 'Играч 3'}, разположете оставащите пулове!`);
+  }
+  else if(players[1].remainingPawns !== 0 && players[2].remainingPawns !== 0 && players[3].remainingPawns === 0) {
+    alert(`${playerNames[0] || 'Играч 1'} и ${playerNames[1] || 'Играч 2'}, разположете оставащите пулове!`);
+  }
+  else {
+    alert(`${playerNames[0] || 'Играч 1'}, ${playerNames[1] || 'Играч 2'} и ${playerNames[2] || 'Играч 3'}, разположете оставащите пулове!`);
+  }
+});
 
